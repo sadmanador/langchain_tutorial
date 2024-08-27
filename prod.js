@@ -12,17 +12,17 @@ import {
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 
-// Initialize the model with the OpenAI API key
+
 const model = new ChatOpenAI({
   model: "gpt-4o-mini",
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Function to read the file and create vector store
+
 async function createVectorStoreFromTextFile(filePath) {
   try {
     const fileContent = await fs.readFile(filePath, "utf-8");
-    const documents = fileContent.split("\n\n"); // Adjust the split based on your file's formatting
+    const documents = fileContent.split("\n\n");
     const vectorStore = await MemoryVectorStore.fromTexts(
       documents,
       documents.map((_, index) => ({ id: index + 1 })),
@@ -34,7 +34,7 @@ async function createVectorStoreFromTextFile(filePath) {
   }
 }
 
-// Function to create a vector store from MongoDB documents
+
 async function createVectorStoreFromMongoDB(uri) {
     const client = new MongoClient(uri);
   
@@ -44,7 +44,7 @@ async function createVectorStoreFromMongoDB(uri) {
   
       const collection = client.db("test").collection("devices");
       const documents = await collection.find({}).toArray();
-      const textDocuments = documents.map((doc) => JSON.stringify(doc)); // Convert each document to a string format
+      const textDocuments = documents.map((doc) => JSON.stringify(doc)); 
   
       const vectorStore = await MemoryVectorStore.fromTexts(
         textDocuments,
@@ -62,12 +62,12 @@ async function createVectorStoreFromMongoDB(uri) {
   }
   
 
-// Main function to set up and run the chains
+
 async function runConversationalRetrievalQA() {
   const vectorStoreTextFile = await createVectorStoreFromTextFile("./all.txt");
   const vectorStoreMongoDB = await createVectorStoreFromMongoDB(process.env.MONGODB_URI);
 
-  // Combine vector stores or use separately
+
   const retrieverTextFile = vectorStoreTextFile.asRetriever();
   const retrieverMongoDB = vectorStoreMongoDB.asRetriever();
 
@@ -116,7 +116,7 @@ async function runConversationalRetrievalQA() {
 
   const answerChain = RunnableSequence.from([
     {
-      context: retrieverTextFile.pipe(combineDocumentsFn), // Use text file retriever
+      context: retrieverTextFile.pipe(combineDocumentsFn), 
       question: new RunnablePassthrough(),
     },
     ANSWER_PROMPT,
@@ -126,7 +126,7 @@ async function runConversationalRetrievalQA() {
 
   const answerChainMongoDB = RunnableSequence.from([
     {
-      context: retrieverMongoDB.pipe(combineDocumentsFn), // Use MongoDB retriever
+      context: retrieverMongoDB.pipe(combineDocumentsFn),
       question: new RunnablePassthrough(),
     },
     ANSWER_PROMPT,
@@ -137,14 +137,14 @@ async function runConversationalRetrievalQA() {
   const conversationalRetrievalQAChain = standaloneQuestionChain.pipe(answerChain);
   const conversationalRetrievalQAChainMongoDB = standaloneQuestionChain.pipe(answerChainMongoDB);
 
-  // First invoker: Asking about the urinary tract
+
   const result1 = await conversationalRetrievalQAChain.invoke({
     question: "What does the urinary tract include?",
     chat_history: [],
   });
   console.log("Text file result:", result1);
 
-  // Second invoker: Asking a MongoDB based question
+
   const result2 = await conversationalRetrievalQAChainMongoDB.invoke({
     question: "Show me all devices registered last week.",
     chat_history: [],
@@ -152,5 +152,5 @@ async function runConversationalRetrievalQA() {
   console.log("MongoDB result:", result2);
 }
 
-// Run the main function
+
 runConversationalRetrievalQA();
